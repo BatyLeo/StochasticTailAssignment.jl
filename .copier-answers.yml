@@ -1,0 +1,13 @@
+# Changes here will be overwritten by Copier
+AddPrecommitUpdateCI: false
+Authors: BatyLeo
+JuliaMinVersion: '1.10'
+License: MIT
+LicenseCopyrightHolders: BatyLeo
+PackageName: StochasticTailAssignment
+PackageOwner: BatyLeo
+PackageUUID: f98393d4-ceb2-514e-aa5c-fd95c10ddeba
+StrategyConfirmIncluded: false
+StrategyLevel: 2
+StrategyReviewExcluded: false
+_src_path: /home/leo/.julia/packages/BestieTemplate/wBn4Z

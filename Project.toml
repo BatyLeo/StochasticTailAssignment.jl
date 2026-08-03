@@ -1,0 +1,10 @@
+name = "StochasticTailAssignment"
+uuid = "f98393d4-ceb2-514e-aa5c-fd95c10ddeba"
+authors = ["BatyLeo"]
+version = "0.1.0"
+
+[workspace]
+projects = ["test", "docs"]
+
+[compat]
+julia = "1.10"
