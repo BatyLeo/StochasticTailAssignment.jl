@@ -13,5 +13,9 @@ Pages = ["95-reference.md"]
 ```
 
 ```@autodocs
-Modules = [StochasticTailAssignment, StochasticTailAssignment.AircraftRoutingBase]
+Modules = [
+    StochasticTailAssignment,
+    StochasticTailAssignment.AircraftRoutingBase,
+    StochasticTailAssignment.FlightDelayModel,
+]
 ```

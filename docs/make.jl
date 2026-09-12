@@ -64,7 +64,11 @@ function list_pages()
 end
 
 makedocs(;
-    modules=[StochasticTailAssignment, StochasticTailAssignment.AircraftRoutingBase],
+    modules=[
+        StochasticTailAssignment,
+        StochasticTailAssignment.AircraftRoutingBase,
+        StochasticTailAssignment.FlightDelayModel,
+    ],
     authors="BatyLeo",
     repo="https://github.com/BatyLeo/StochasticTailAssignment.jl/blob/{commit}{path}#{line}",
     sitename="StochasticTailAssignment.jl",
