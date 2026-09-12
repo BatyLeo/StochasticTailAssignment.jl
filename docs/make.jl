@@ -68,6 +68,7 @@ makedocs(;
         StochasticTailAssignment,
         StochasticTailAssignment.AircraftRoutingBase,
         StochasticTailAssignment.FlightDelayModel,
+        StochasticTailAssignment.InstanceGenerator,
     ],
     authors="BatyLeo",
     repo="https://github.com/BatyLeo/StochasticTailAssignment.jl/blob/{commit}{path}#{line}",
