@@ -3,7 +3,7 @@ $TYPEDEF
 
 Data structures defining the forward extension functions for the column generation algorithm.
 It lives on the arcs of the graph.
-It can either be defined and used to expand resource at tail ([`TailForwardResource`](@ref)) or head ([`HeadForwardResource`](@ref)) of arcs.
+It is used to expand resources at the tail of arcs (see [`TailForwardResource`](@ref)).
 The considered node index of the arc is stored in the field `activity_index`.
 
 # Fields
