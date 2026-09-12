@@ -7,14 +7,14 @@ function _allocate_legs(rng, nb_legs::Int, nb_aircraft::Int)
     allocation = [max(1, round(Int, nb_legs * w / sum(weights))) for w in weights]
     diff = nb_legs - sum(allocation)
     for i in 1:abs(diff)
-        allocation[((i-1)%nb_aircraft)+1] += sign(diff)
+        allocation[((i - 1) % nb_aircraft) + 1] += sign(diff)
     end
     return allocation
 end
 
 function _sample_turn_time(rng, min_turn::Int, max_turn::Int, tight_fraction::Float64)
     if rand(rng) < tight_fraction && min_turn > 1
-        return rand(rng, max(1, min_turn÷2):(min_turn-1))
+        return rand(rng, max(1, min_turn ÷ 2):(min_turn - 1))
     end
     return rand(rng, min_turn:max_turn)
 end
@@ -51,7 +51,7 @@ function _generate_rotation!(
     aircraft_type,
 )
     current_airport = hub
-    current_time = horizon_start + Dates.Minute(rand(rng, 0:(horizon_minutes÷3)))
+    current_time = horizon_start + Dates.Minute(rand(rng, 0:(horizon_minutes ÷ 3)))
 
     for _ in 1:num_legs
         dest = _pick_destination(rng, current_airport, hub, spokes, hub_fraction)
@@ -68,7 +68,7 @@ function _generate_rotation!(
 
         if arr_time > horizon_end
             current_airport = hub
-            current_time = horizon_start + Dates.Minute(rand(rng, 0:(horizon_minutes÷3)))
+            current_time = horizon_start + Dates.Minute(rand(rng, 0:(horizon_minutes ÷ 3)))
             dest = _pick_destination(rng, current_airport, hub, spokes, hub_fraction)
             arr_time = _compute_arrival(
                 rng,
@@ -128,7 +128,7 @@ function _pad_to_target!(
     min_turn_time,
 )
     while length(legs) < target
-        dep_time = horizon_start + Dates.Minute(rand(rng, 0:(horizon_minutes÷2)))
+        dep_time = horizon_start + Dates.Minute(rand(rng, 0:(horizon_minutes ÷ 2)))
         dest = spokes[rand(rng, 1:length(spokes))]
         arr_time = _compute_arrival(
             rng,
