@@ -5,7 +5,7 @@ DocMeta.setdocmeta!(
     StochasticTailAssignment,
     :DocTestSetup,
     :(using StochasticTailAssignment);
-    recursive = true,
+    recursive=true,
 )
 
 # Add titles of sections and overrides page titles
@@ -14,7 +14,7 @@ const titles = Dict(
     "91-developer.md" => "Developer docs",
 )
 
-function recursively_list_pages(folder; path_prefix = "")
+function recursively_list_pages(folder; path_prefix="")
     pages_list = Any[]
     for file in readdir(folder)
         if file == "index.md"
@@ -28,7 +28,7 @@ function recursively_list_pages(folder; path_prefix = "")
 
         if isdir(fullpath)
             # If this is a folder, enter the recursion case
-            subsection = recursively_list_pages(fullpath; path_prefix = relpath)
+            subsection = recursively_list_pages(fullpath; path_prefix=relpath)
 
             # Ignore empty folders
             if length(subsection) > 0
@@ -64,14 +64,14 @@ function list_pages()
 end
 
 makedocs(;
-    modules = [StochasticTailAssignment],
-    authors = "BatyLeo",
-    repo = "https://github.com/BatyLeo/StochasticTailAssignment.jl/blob/{commit}{path}#{line}",
-    sitename = "StochasticTailAssignment.jl",
-    format = Documenter.HTML(;
-        canonical = "https://BatyLeo.github.io/StochasticTailAssignment.jl",
+    modules=[StochasticTailAssignment],
+    authors="BatyLeo",
+    repo="https://github.com/BatyLeo/StochasticTailAssignment.jl/blob/{commit}{path}#{line}",
+    sitename="StochasticTailAssignment.jl",
+    format=Documenter.HTML(;
+        canonical="https://BatyLeo.github.io/StochasticTailAssignment.jl"
     ),
-    pages = list_pages(),
+    pages=list_pages(),
 )
 
-deploydocs(; repo = "github.com/BatyLeo/StochasticTailAssignment.jl")
+deploydocs(; repo="github.com/BatyLeo/StochasticTailAssignment.jl")
