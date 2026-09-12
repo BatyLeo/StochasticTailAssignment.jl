@@ -1,6 +1,5 @@
 # StochasticTailAssignment
 
-[![Stable Documentation](https://img.shields.io/badge/docs-stable-blue.svg)](https://BatyLeo.github.io/StochasticTailAssignment.jl/stable)
 [![Development documentation](https://img.shields.io/badge/docs-dev-blue.svg)](https://BatyLeo.github.io/StochasticTailAssignment.jl/dev)
 [![Test workflow status](https://github.com/BatyLeo/StochasticTailAssignment.jl/actions/workflows/Test.yml/badge.svg?branch=main)](https://github.com/BatyLeo/StochasticTailAssignment.jl/actions/workflows/Test.yml?query=branch%3Amain)
 [![Coverage](https://codecov.io/gh/BatyLeo/StochasticTailAssignment.jl/branch/main/graph/badge.svg)](https://codecov.io/gh/BatyLeo/StochasticTailAssignment.jl)
