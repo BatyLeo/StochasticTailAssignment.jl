@@ -57,9 +57,13 @@ function run_pipeline(schedule, root_delays, delay_cost_fn; silent=true)
 
     if !div_feasible || !is_feasible(diving, schedule)
         return (;
-            det_op, det_delay, det_total,
-            nb_columns=length(cg.columns), cg_bound=cg.obj,
-            time_cg=t_cg, time_div=t_div,
+            det_op,
+            det_delay,
+            det_total,
+            nb_columns=length(cg.columns),
+            cg_bound=cg.obj,
+            time_cg=t_cg,
+            time_div=t_div,
             feasible=false,
         )
     end
@@ -127,8 +131,15 @@ for cfg in gap_configs
     t = @elapsed res = run_pipeline(schedule, root_delays, delay_cost_fn)
     if !res.feasible
         println("INFEASIBLE ($(round(t; digits=1))s)")
-        @printf("%-14s  %10s  %12s  %12s  %8d  %s\n",
-            "$(cfg.nb_legs)L / $(I)ac", "N/A", "N/A", "N/A", res.nb_columns, "N/A")
+        @printf(
+            "%-14s  %10s  %12s  %12s  %8d  %s\n",
+            "$(cfg.nb_legs)L / $(I)ac",
+            "N/A",
+            "N/A",
+            "N/A",
+            res.nb_columns,
+            "N/A"
+        )
         continue
     end
     println("done ($(round(t; digits=1))s)")
