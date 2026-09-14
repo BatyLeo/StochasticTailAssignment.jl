@@ -1,13 +1,5 @@
 module StochasticTailAssignment
 
-include("AircraftRoutingBase/AircraftRoutingBase.jl")
-include("FlightDelayModel/FlightDelayModel.jl")
-include("InstanceGenerator/InstanceGenerator.jl")
-
-using .AircraftRoutingBase
-using .FlightDelayModel
-using .InstanceGenerator
-
 using ConstrainedShortestPaths:
     CSPInstance,
     generalized_constrained_shortest_path,
@@ -21,6 +13,14 @@ using PiecewiseLinearFunctions:
     PiecewiseLinearFunction, compute_slopes, convex_meet, remove_redundant_breakpoints
 using SparseArrays: sparse
 using Statistics: mean
+
+include("AircraftRoutingBase/AircraftRoutingBase.jl")
+include("FlightDelayModel/FlightDelayModel.jl")
+include("InstanceGenerator/InstanceGenerator.jl")
+
+using .AircraftRoutingBase
+using .FlightDelayModel
+using .InstanceGenerator
 
 include("mip.jl")
 
@@ -39,5 +39,8 @@ export forward_tail_shortest_path
 export backward_tail_shortest_path
 export stochastic_column_generation, stochastic_column_heuristic
 export pure_diving_heuristic, diving_heuristic_with_backtracking!
+
+function plot_gantt end
+export plot_gantt
 
 end
