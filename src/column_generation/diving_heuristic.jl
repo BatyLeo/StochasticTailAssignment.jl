@@ -76,6 +76,10 @@ function pure_diving_heuristic(
             starting_sweep=true,
         )
 
+        if !res.feasible
+            error("Column generation infeasible during diving heuristic iteration $it")
+        end
+
         best_column_index = argmax(res.dual_values)
         best_column = res.columns[best_column_index]
         push!(partial_solution, best_column)
