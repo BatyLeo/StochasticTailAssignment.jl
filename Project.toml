@@ -35,6 +35,7 @@ HiGHS = "1"
 IterTools = "1"
 JSON = "1"
 JuMP = "1"
+Makie = "0.21, 0.22"
 MetaGraphsNext = "0.7, 0.8"
 OneHotArrays = "0.2"
 PiecewiseLinearFunctions = "0.4.4"
@@ -44,3 +45,9 @@ SCIP = "0.12"
 SparseArrays = "1"
 Statistics = "1.10"
 julia = "1.10"
+
+[weakdeps]
+Makie = "e9d8d322-4543-424a-9be4-0cc7f82e3736"
+
+[extensions]
+StochasticTailAssignmentMakieExt = "Makie"

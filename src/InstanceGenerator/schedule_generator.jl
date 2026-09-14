@@ -176,7 +176,7 @@ of approximately 11 that ensures feasibility across all instance sizes (50 to 60
 function generate_benchmark_instance(
     nb_legs::Int;
     nb_aircraft::Int=max(2, nb_legs ÷ 11),
-    airports::Vector{String}=["CDG", "ORY", "JFK", "LAX", "LHR", "FCO", "BCN", "AMS"],
+    airports::Vector{String}=["CDG", "A", "B", "C", "D", "E", "F", "G"],
     aircraft_type::String="320",
     horizon_days::Int=7,
     nb_scenarios::Int=50,
