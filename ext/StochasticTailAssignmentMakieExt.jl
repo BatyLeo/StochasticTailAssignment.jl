@@ -133,8 +133,8 @@ function _render_section!(
         push!(
             labels,
             "$(id(leg))\n$(departure_airport(leg)) → $(arrival_airport(leg))\n" *
-                "$(Dates.format(departure_time(leg), "HH:MM")) - $(Dates.format(arrival_time(leg), "HH:MM"))" *
-                delay_line,
+            "$(Dates.format(departure_time(leg), "HH:MM")) - $(Dates.format(arrival_time(leg), "HH:MM"))" *
+            delay_line,
         )
 
         if diff_assignment !== nothing && get(diff_assignment, li, -1) != ac
@@ -331,7 +331,7 @@ function StochasticTailAssignment.plot_gantt(
         rowsize!(fig.layout, 1, Auto(0.05))
     end
     first_chart_row = 1 + has_delays
-    for r in first_chart_row:(first_chart_row+(has_comp ? 1 : 0))
+    for r in first_chart_row:(first_chart_row + (has_comp ? 1 : 0))
         rowsize!(fig.layout, r, Auto(1.0))
     end
     rowsize!(fig.layout, legend_row, Auto(0.15))
