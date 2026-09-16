@@ -32,7 +32,7 @@ function delay_expected_cost(
 )
     arrival_delays = propagate_delays_from_root_delays(route_s, root_delays, instance)
     S = size(root_delays, 1)
-    return sum(delay_cost_function(ξ) for ξ in arrival_delays) / S
+    return sum(delay_cost_function(ξ) for ξ in arrival_delays; init=0.0) / S
 end
 
 function delay_expected_cost(

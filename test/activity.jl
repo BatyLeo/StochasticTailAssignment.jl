@@ -224,3 +224,53 @@ end
     @test is_feasible(test_routes_3, schedule)
     @test !is_feasible(test_routes_4, schedule; verbose=false)
 end
+
+@testitem "Empty route feasibility" begin
+    using StochasticTailAssignment.AircraftRoutingBase
+
+    schedule = ActivitySchedule(;
+        immats=[Immat("A", 1.0, "s", "77W"), Immat("B", 1.0, "s", "77W")],
+        standard_consumption=Dict("77W" => 125.0, "" => 65.0),
+        legs=Leg[Leg(
+            "1",
+            "JFK",
+            "CDG",
+            string_to_date("2022-01-01T00:00"),
+            string_to_date("2022-01-01T01:00"),
+            "77W",
+            0,
+        )],
+        TTM_factor=1.0,
+    )
+
+    empty_route = Route(2, Int[])
+    @test is_feasible(empty_route, schedule)
+
+    routes = [Route(1, [1]), empty_route]
+    @test is_feasible(routes, schedule)
+end
+
+@testitem "Empty route feasibility with forced last activity" begin
+    using StochasticTailAssignment.AircraftRoutingBase
+
+    # immat "A" is forced to start from leg "1" (its `last_activity_id`, a
+    # real vertex of the graph, not the generic source "s"): an empty route
+    # bypasses that forced chaining and must be reported as infeasible
+    schedule = ActivitySchedule(;
+        immats=[Immat("A", 1.0, "1", "77W")],
+        standard_consumption=Dict("77W" => 125.0, "" => 65.0),
+        legs=Leg[Leg(
+            "1",
+            "JFK",
+            "CDG",
+            string_to_date("2022-01-01T00:00"),
+            string_to_date("2022-01-01T01:00"),
+            "77W",
+            0,
+        )],
+        TTM_factor=1.0,
+    )
+
+    empty_route = Route(1, Int[])
+    @test !is_feasible(empty_route, schedule; verbose=false)
+end

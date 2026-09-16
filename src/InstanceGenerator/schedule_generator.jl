@@ -10,6 +10,12 @@ airport (first in `airports`) attracts most traffic via `hub_fraction`.
 
 Flight durations vary by destination distance: hub-spoke legs use the full duration
 range, while spoke-spoke legs use shorter durations.
+
+Each rotation stops as soon as its next leg would land after the horizon, and any
+shortfall is padded by extending the tail of existing rotations (never by creating new,
+disconnected hub departures). In the rare case where no rotation has room left before the
+horizon, padding stops early and the returned vector can have slightly fewer than
+`nb_legs` legs.
 """
 function generate_legs(;
     nb_legs::Int,
@@ -37,8 +43,9 @@ function generate_legs(;
 
     legs = Leg[]
     leg_counter = Ref(0)
+    rotation_tails = Tuple{String,Dates.DateTime}[]
     for ac in 1:nb_aircraft
-        _generate_rotation!(
+        tail = _generate_rotation!(
             legs,
             leg_counter,
             rng,
@@ -57,23 +64,26 @@ function generate_legs(;
             tight_turn_fraction,
             aircraft_type,
         )
+        tail === nothing || push!(rotation_tails, tail)
     end
 
     _pad_to_target!(
         legs,
         leg_counter,
+        rotation_tails,
         rng,
         nb_legs;
         hub,
         spokes,
         spoke_distances,
-        horizon_start,
+        hub_fraction,
         horizon_end,
-        horizon_minutes,
         min_flight_duration,
         max_flight_duration,
-        aircraft_type,
         min_turn_time,
+        max_turn_time,
+        tight_turn_fraction,
+        aircraft_type,
     )
 
     return _finalize_legs(legs, nb_legs)
@@ -85,8 +95,8 @@ $(TYPEDSIGNATURES)
 Generate a vector of `nb_aircraft` random [`Immat`](@ref)s of the given `aircraft_type`.
 
 Fuel factors are drawn uniformly in `[fuel_factor_min, fuel_factor_max]`.
-In real airline data, fuel factors are positive (typically 1.0 to 4.0), representing
-the percentage deviation from standard consumption.
+Fuel factors are positive (typically 1.0 to 4.0), representing the percentage
+deviation from standard consumption.
 """
 function generate_fleet(;
     nb_aircraft::Int,
@@ -112,11 +122,15 @@ $(TYPEDSIGNATURES)
 Generate a full artificial [`ActivitySchedule`](@ref), by generating `nb_legs` random
 legs (see [`generate_legs`](@ref)) and `nb_aircraft` random immatriculations
 (see [`generate_fleet`](@ref)), and combining them into an `ActivitySchedule`.
+
+The legs are built from `nb_aircraft` rotations (see [`generate_legs`](@ref)), so the
+returned schedule is always coverable by its own fleet (see [`minimum_fleet_size`](@ref)
+for a standalone coverability check, used in tests).
 """
 function generate_schedule(;
     nb_legs::Int,
     nb_aircraft::Int,
-    airports::Vector{String}=["CDG", "ORY", "JFK", "LAX", "LHR", "FCO", "BCN", "AMS"],
+    airports::Vector{String}=["HUB", "A", "B", "C", "D", "E", "F", "G"],
     aircraft_type::String="320",
     horizon_start::Dates.DateTime=Dates.DateTime(2025, 1, 6),
     horizon_days::Int=7,
@@ -131,6 +145,7 @@ function generate_schedule(;
     standard_consumption::Float64=37.0,
     TTM_factor::Float64=0.0,
     seed::Int=0,
+    store_arc_index::Bool=false,
 )
     legs = generate_legs(;
         nb_legs,
@@ -147,6 +162,7 @@ function generate_schedule(;
         hub_fraction,
         seed,
     )
+
     immats = generate_fleet(;
         nb_aircraft, aircraft_type, fuel_factor_min, fuel_factor_max, seed=seed + 1
     )
@@ -157,8 +173,19 @@ function generate_schedule(;
         standard_consumption=consumption,
         TTM_factor,
         include_chaining_costs=true,
+        store_arc_index,
     )
 end
+
+"""
+$(TYPEDSIGNATURES)
+
+Default `nb_aircraft` for a schedule with `nb_legs` legs, `max(2, nb_legs ÷ 15)`,
+giving a legs-per-aircraft ratio of approximately 15, a ratio typical of short and
+medium haul operations, while ensuring feasibility across all instance sizes
+(50 to 600+ legs).
+"""
+default_nb_aircraft(nb_legs::Int) = max(2, nb_legs ÷ 15)
 
 """
 $(TYPEDSIGNATURES)
@@ -166,28 +193,58 @@ $(TYPEDSIGNATURES)
 Generate a complete benchmark instance ready for solving and evaluation.
 
 Returns `(schedule, root_delays, delay_cost_function)` where:
-- `schedule` is an [`ActivitySchedule`](@ref) with `nb_legs` legs
+- `schedule` is an [`ActivitySchedule`](@ref) with `nb_legs` legs, or slightly fewer, see
+  [`generate_legs`](@ref)
 - `root_delays` is an `S x L` `Matrix{Float32}` of root delays
-- `delay_cost_function` is a piecewise linear delay cost function (medium-haul slopes)
+- `delay_cost_function` is a piecewise linear delay cost function (medium-haul slopes,
+  weighted by `nb_seats`)
 
-The default `nb_aircraft` is `max(2, nb_legs ÷ 11)`, giving a legs-per-aircraft ratio
-of approximately 11 that ensures feasibility across all instance sizes (50 to 600+ legs).
+The default `nb_aircraft` is [`default_nb_aircraft`](@ref)`(nb_legs)`, plus
+`nb_extra_aircraft` (only applied when `nb_aircraft` is not given explicitly).
+
+`root_delays` is generated by [`generate_root_delays`](@ref), forwarding
+`delay_intensity`, `risk_spread` and `delay_coefficients` (see
+[`build_delay_model`](@ref) and [`DelayCoefficients`](@ref)), with a delay seed of
+`seed + 100` by default (override via `delay_seed` if a caller needs to reproduce this
+exact draw, e.g. to also sample the unmerged departure/arrival components with
+[`sample_root_scenarios_unmerged`](@ref)).
+
+`delay_cost_function` uses the medium-haul slopes
+(`FlightDelayModel.DELAY_COST_SLOPE_MEDIUM_HAUL`) multiplied by `nb_seats`. Delay cost
+slopes are expressed per seat and per minute, and are scaled by the aircraft seat count.
+The default `nb_seats=180` matches a typical narrow-body aircraft, `nb_seats=1` recovers
+the unweighted (per-seat) slopes.
 """
 function generate_benchmark_instance(
     nb_legs::Int;
-    nb_aircraft::Int=max(2, nb_legs ÷ 11),
-    airports::Vector{String}=["CDG", "A", "B", "C", "D", "E", "F", "G"],
+    nb_aircraft::Union{Nothing,Int}=nothing,
+    nb_extra_aircraft::Int=0,
+    airports::Vector{String}=["HUB", "A", "B", "C", "D", "E", "F", "G"],
     aircraft_type::String="320",
     horizon_days::Int=7,
     nb_scenarios::Int=50,
+    delay_intensity::Float64=1.0,
+    risk_spread::Float64=1.0,
+    delay_coefficients::DelayCoefficients=DelayCoefficients(),
+    nb_seats::Real=180,
     seed::Int=0,
+    delay_seed::Union{Nothing,Int}=nothing,
+    store_arc_index::Bool=false,
 )
+    nb_aircraft = something(nb_aircraft, default_nb_aircraft(nb_legs) + nb_extra_aircraft)
     schedule = generate_schedule(;
-        nb_legs, nb_aircraft, airports, aircraft_type, horizon_days, seed
+        nb_legs, nb_aircraft, airports, aircraft_type, horizon_days, seed, store_arc_index
     )
-    root_delays = generate_root_delays(schedule; nb_scenarios, seed=seed + 100)
+    root_delays = generate_root_delays(
+        schedule;
+        nb_scenarios,
+        seed=something(delay_seed, seed + 100),
+        delay_intensity,
+        risk_spread,
+        coefficients=delay_coefficients,
+    )
     delay_cost_fn = FlightDelayModel.DelayCostFunction(;
-        slopes=FlightDelayModel.DELAY_COST_SLOPE_MEDIUM_HAUL
+        slopes=nb_seats .* FlightDelayModel.DELAY_COST_SLOPE_MEDIUM_HAUL
     )
     return schedule, root_delays, delay_cost_fn
 end

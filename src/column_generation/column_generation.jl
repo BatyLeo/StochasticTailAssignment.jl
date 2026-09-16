@@ -387,6 +387,7 @@ function retrieve_relaxation_solution_from_columns_and_duals(
     arc_index, _ = compute_arc_index(instance)
     y_val = zeros(length(values(arc_index)))
     for (route, dual_val) in zip(columns, dual_values)
+        isempty(route) && continue  # skip unused aircraft (empty route)
         u = route[1]
         i = route.immat_index
         for v in route[2:length(route)]

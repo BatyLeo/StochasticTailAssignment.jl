@@ -1,49 +1,62 @@
 """
 $(TYPEDSIGNATURES)
 
-Generate an `nb_scenarios x nb_legs(schedule)` matrix of root delays (in minutes),
-compatible with [`propagate_delays_from_root_delays`](@ref) and
+Build a [`SyntheticDelayModel`](@ref) for `schedule`, using a
+[`HandcraftedDelayPredictor`](@ref) compiled from `coefficients` (pass a
+custom per-airport effect table via `coefficients=DelayCoefficients(;
+airport_effects=...)`).
+
+`delay_intensity` globally scales every intrinsic root delay after shift and
+cap (see [`SyntheticDelayModel`](@ref)). `risk_spread` scales every named
+per-leg effect of `coefficients` and re-derives the within-leg sigma so that
+the population-level delay distribution stays approximately unchanged while
+the spread of delay risk across legs increases (see [`DelayCoefficients`](@ref)).
+
+The returned model is static-only (`has_dynamic_features(model) == false`), so
+it is a valid input to [`sample_root_scenarios`](@ref) and, through
+[`generate_root_delays`](@ref), to `stochastic_column_generation`.
+"""
+function build_delay_model(
+    schedule::ActivitySchedule;
+    coefficients::DelayCoefficients=DelayCoefficients(),
+    delay_intensity::Real=1.0,
+    risk_spread::Real=1.0,
+    config::FeaturesConfig=FeaturesConfig(; airports=schedule_airports(schedule)),
+)
+    predictor = HandcraftedDelayPredictor(coefficients, config; risk_spread)
+    return SyntheticDelayModel(; predictor, delay_intensity)
+end
+
+"""
+$(TYPEDSIGNATURES)
+
+Generate an `nb_scenarios x nb_legs(schedule)` matrix of root delays (in
+minutes), compatible with [`propagate_delays_from_root_delays`](@ref) and
 `full_cost(routes, root_delays, instance; delay_cost_function)`.
 
-For each leg, the root delay in a given scenario is the sum of an independent
-departure intrinsic delay and an independent arrival intrinsic delay, each drawn
-from a `LogNormal(mu, sigma)` distribution. The `mu` parameter is increased by
-`evening_mu_boost` for legs departing in the evening or at night (hour `>= 17` or
-`<= 5`), to mimic the pattern where evening flights tend to accumulate more delay.
+Delays are generated from a [`SyntheticDelayModel`](@ref) (see
+[`build_delay_model`](@ref)): for each leg, the root delay in a given scenario
+is the sum of a departure intrinsic delay (LogNormal) and an arrival intrinsic
+delay (Normal), whose parameters depend on handcrafted, interpretable static
+features of the leg (hub/spoke airports, day of week, hour of day, duration).
+Negative root delays are not clamped to zero, since they represent early legs
+and are handled correctly by the delay propagation equations (they provide
+extra slack absorption).
 
-This is a purely parametric sampler (no ML model, no features), meant to produce
-plausible-looking delay scenarios for synthetic instances.
+See [`DelayCoefficients`](@ref) for the default model parameters, and
+`delay_intensity`/`risk_spread` in [`build_delay_model`](@ref) for the two
+global knobs exposed here.
 """
 function generate_root_delays(
     schedule::ActivitySchedule;
     nb_scenarios::Int=50,
-    base_mu::Float64=2.0,
-    base_sigma::Float64=0.8,
-    evening_mu_boost::Float64=0.5,
     seed::Int=0,
+    delay_intensity::Real=1.0,
+    risk_spread::Real=1.0,
+    coefficients::DelayCoefficients=DelayCoefficients(),
 )
-    rng = Random.Xoshiro(seed)
-    L = nb_legs(schedule)
-
-    root_delays = zeros(Float32, nb_scenarios, L)
-
-    for l in 1:L
-        leg = schedule.legs[l]
-        hour = Dates.hour(departure_time(leg))
-
-        mu = base_mu
-        if hour >= 17 || hour <= 5
-            mu += evening_mu_boost
-        end
-
-        dist = LogNormal(mu, base_sigma)
-
-        for s in 1:nb_scenarios
-            departure_delay = rand(rng, dist)
-            arrival_delay = rand(rng, dist)
-            root_delays[s, l] = Float32(departure_delay + arrival_delay)
-        end
-    end
-
-    return root_delays
+    config = FeaturesConfig(; airports=schedule_airports(schedule))
+    model = build_delay_model(schedule; coefficients, delay_intensity, risk_spread, config)
+    scenarios = DelayScenarios(schedule; nb_scenarios, config, seed)
+    return sample_root_scenarios(model, scenarios)
 end

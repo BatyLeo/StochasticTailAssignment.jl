@@ -72,6 +72,16 @@ function is_feasible(route::Route, schedule::ActivitySchedule; verbose=true)
         end
     end
 
+    if isempty(route)
+        last_activity = immat.last_activity_id
+        if haskey(schedule.graph, last_activity) && last_activity != "s"
+            verbose &&
+                @warn "Empty route for immat $(immat.id) bypasses its forced last activity $(last_activity)"
+            return false
+        end
+        return true
+    end
+
     i = 1
     previous_activity = get_activity(schedule, route[i])
 

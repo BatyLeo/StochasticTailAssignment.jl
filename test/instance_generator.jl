@@ -64,6 +64,7 @@ end
     using Statistics
     using StochasticTailAssignment.AircraftRoutingBase
     using StochasticTailAssignment.InstanceGenerator
+    using StochasticTailAssignment.FlightDelayModel
 
     schedule = generate_schedule(; nb_legs=50, nb_aircraft=4, seed=42)
 
@@ -71,14 +72,29 @@ end
 
     @test size(root_delays) == (100, 50)
     @test eltype(root_delays) == Float32
-    @test all(root_delays .>= 0)
-    @test mean(root_delays) > 0
+    @test any(root_delays .< 0)
+    @test -3 < mean(root_delays) < 3
 
     root_delays_2 = generate_root_delays(schedule; nb_scenarios=100, seed=42)
     @test root_delays == root_delays_2
 
     root_delays_3 = generate_root_delays(schedule; nb_scenarios=100, seed=99)
     @test root_delays_3 != root_delays
+
+    # `delay_intensity` scales every root delay *after* shift and cap, so its
+    # effect on the (capped) departure component is not a trivial 2x rescaling
+    # of the population mean: check that the cap itself scales by 2 and is
+    # actually reached, and that the mean still scales by about 2
+    config = FeaturesConfig(; airports=schedule_airports(schedule))
+    scenarios = DelayScenarios(schedule; nb_scenarios=100, seed=42, config)
+    model1 = build_delay_model(schedule; config, delay_intensity=1.0)
+    model2 = build_delay_model(schedule; config, delay_intensity=2.0)
+    dep1 = sample_root_scenarios_unmerged(model1, scenarios).departure
+    dep2 = sample_root_scenarios_unmerged(model2, scenarios).departure
+
+    @test maximum(dep2) <= 2 * model1.max_dep
+    @test maximum(dep2) ≈ 2 * model1.max_dep atol = 1.0
+    @test mean(dep2) ≈ 2 * mean(dep1) rtol = 0.05
 end
 
 @testitem "End-to-end: generate, solve, evaluate" begin
@@ -129,4 +145,102 @@ end
         200; nb_scenarios=30, seed=42
     )
     @test nb_legs(schedule_big) == 200
+end
+
+@testitem "Benchmark instance seat-weighted delay cost slopes" begin
+    using StochasticTailAssignment
+    using StochasticTailAssignment.InstanceGenerator
+    using StochasticTailAssignment.FlightDelayModel
+
+    # a piecewise linear function's segment slopes are not exposed as a field, so
+    # recompute them from consecutive breakpoints (plus the final `right_slope`)
+    function segment_slopes(f)
+        n = length(f.x)
+        return [
+            [(f.y[i + 1] - f.y[i]) / (f.x[i + 1] - f.x[i]) for i in 1:(n - 1)]
+            f.right_slope
+        ]
+    end
+
+    _, _, delay_cost_fn_unweighted = generate_benchmark_instance(50; nb_seats=1, seed=42)
+    @test segment_slopes(delay_cost_fn_unweighted) ==
+        FlightDelayModel.DELAY_COST_SLOPE_MEDIUM_HAUL
+
+    _, _, delay_cost_fn_default = generate_benchmark_instance(50; seed=42)
+    @test segment_slopes(delay_cost_fn_default) ==
+        180 .* FlightDelayModel.DELAY_COST_SLOPE_MEDIUM_HAUL
+end
+
+@testitem "Benchmark instances are always coverable (regression)" begin
+    using StochasticTailAssignment
+    using StochasticTailAssignment.InstanceGenerator
+    using StochasticTailAssignment.AircraftRoutingBase
+
+    for nb_legs_target in (50, 115), seed in (0, 1)
+        schedule, _, _ = generate_benchmark_instance(nb_legs_target; nb_scenarios=2, seed)
+
+        # the fleet built by the generator must always be able to cover every leg
+        @test minimum_fleet_size(schedule) <= nb_immats(schedule)
+
+        # a feasibility-only solve of the deterministic MIP must find a covering solution
+        routes, _, _ = solve_aircraft_routing(
+            schedule; silent=true, feasibility_only=true, time_limit=10.0
+        )
+        @test routes isa Vector{Route}
+    end
+end
+
+@testitem "Minimum fleet size (hand-built schedule)" begin
+    using Dates
+    using StochasticTailAssignment.AircraftRoutingBase
+    using StochasticTailAssignment.InstanceGenerator
+
+    # two legs departing at overlapping times from the same airport, but
+    # arriving at different airports, cannot be chained in either order (an
+    # aircraft cannot be in two places at once): 2 aircraft are needed
+    overlapping_legs = [
+        Leg(
+            "1",
+            "CDG",
+            "JFK",
+            DateTime(2022, 1, 1, 0, 0),
+            DateTime(2022, 1, 1, 1, 0),
+            "77W",
+            0,
+        ),
+        Leg(
+            "2",
+            "CDG",
+            "ORY",
+            DateTime(2022, 1, 1, 0, 30),
+            DateTime(2022, 1, 1, 1, 30),
+            "77W",
+            0,
+        ),
+    ]
+    @test minimum_fleet_size(overlapping_legs) == 2
+
+    # two legs that chain end-to-end (matching airport, enough turnaround
+    # slack) only need a single aircraft
+    chainable_legs = [
+        Leg(
+            "1",
+            "JFK",
+            "CDG",
+            DateTime(2022, 1, 1, 0, 0),
+            DateTime(2022, 1, 1, 4, 0),
+            "77W",
+            0,
+        ),
+        Leg(
+            "2",
+            "CDG",
+            "ORY",
+            DateTime(2022, 1, 1, 5, 0),
+            DateTime(2022, 1, 1, 6, 0),
+            "77W",
+            0,
+        ),
+    ]
+    @test minimum_fleet_size(chainable_legs) == 1
 end
