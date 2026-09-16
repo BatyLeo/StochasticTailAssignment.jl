@@ -174,7 +174,7 @@ actually present in `schedule`, rather than assuming the `["HUB", "A", "B",
 own default when explicitly requested (e.g. via `generate_benchmark_instance`).
 
 Defined here (rather than in `InstanceGenerator`) so that both
-`FlightDelayModel` (default `config` of [`DelayScenarios`](@ref)) and
+`FlightDelayModel` (default `config` of [`StochasticTailAssignment.FlightDelayModel.DelayScenarios`](@ref)) and
 `InstanceGenerator` (default `config` of `build_delay_model`) can build a
 matching, consistent [`FeaturesConfig`](@ref) without a circular dependency.
 """

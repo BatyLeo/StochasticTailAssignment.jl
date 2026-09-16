@@ -30,7 +30,7 @@ evaluation (see [`evaluate_metrics`](@ref)) instead of the training scenarios.
 
 `departure_root_delays` and `arrival_root_delays` are the unmerged departure and arrival
 components of `root_delays` (see [`sample_root_scenarios_unmerged`](@ref)), sampled from
-the same [`SyntheticDelayModel`](@ref) and the same delay seed as `root_delays` (so that
+the same [`StochasticTailAssignment.FlightDelayModel.SyntheticDelayModel`](@ref) and the same delay seed as `root_delays` (so that
 `departure_root_delays .+ arrival_root_delays == root_delays`), and passed to
 [`compute_features`](@ref) to build `x`. If `nb_feature_scenarios` differs from
 `nb_scenarios`, `departure_root_delays` and `arrival_root_delays` are instead drawn from a
