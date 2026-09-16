@@ -18,5 +18,6 @@ Modules = [
     StochasticTailAssignment.AircraftRoutingBase,
     StochasticTailAssignment.FlightDelayModel,
     StochasticTailAssignment.InstanceGenerator,
+    StochasticTailAssignment.Learning,
 ]
 ```
