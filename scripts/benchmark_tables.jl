@@ -2,7 +2,7 @@
     benchmark_tables.jl
 
 Reproduce the benchmark result tables from the instance generator documentation.
-Run from the package root: `julia --project scripts/benchmark_tables.jl`
+Run from the package root: `julia --project=scripts scripts/benchmark_tables.jl`
 
 Tables produced:
 1. Deterministic vs. stochastic gap (varying instance size)

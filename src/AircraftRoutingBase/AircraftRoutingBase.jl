@@ -51,7 +51,10 @@ include("solution/evaluation.jl")
 include("parsing/parsing.jl")
 
 include("algorithms/mip.jl")
+include("algorithms/edge_mip.jl")
 include("algorithms/colgen.jl")
+
+include("features.jl")
 
 # Basic data types
 export AbstractActivity, AbstractLeg, Leg, Maintenance, ForcedChaining, Immat
@@ -89,10 +92,15 @@ export read_instance, write_instance
 # Solving and decoding functions
 export highs_model, scip_model
 export solve_aircraft_routing, decode_routes_from_solution, decode_solution_from_routes
+export decode_arc_solution_from_routes, decode_routes_from_arc_solution
+export aircraft_routing_edge_maximizer
 export column_generation, column_heuristic
 export compute_shortest_route
 
 export is_feasible
 export string_to_date, to_minutes
+
+export FeaturesConfig,
+    compute_leg_features, compute_leg_feature_names, compute_feature_info, schedule_airports
 
 end

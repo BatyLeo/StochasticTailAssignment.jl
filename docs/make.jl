@@ -60,7 +60,13 @@ function list_pages()
     root_dir = joinpath(@__DIR__, "src")
     pages_list = recursively_list_pages(root_dir)
 
-    return ["index.md"; pages_list]
+    # Group the per-module API reference pages (90-api-*.md to 94-api-*.md) under a
+    # single "Reference" section, instead of listing them as separate top-level pages.
+    is_reference_page(page) = page isa String && occursin(r"^9[0-4]-api-.*\.md$", page)
+    reference_pages = filter(is_reference_page, pages_list)
+    other_pages = filter(!is_reference_page, pages_list)
+
+    return ["index.md"; other_pages; "Reference" => reference_pages]
 end
 
 makedocs(;
@@ -69,6 +75,7 @@ makedocs(;
         StochasticTailAssignment.AircraftRoutingBase,
         StochasticTailAssignment.FlightDelayModel,
         StochasticTailAssignment.InstanceGenerator,
+        StochasticTailAssignment.Learning,
     ],
     authors="BatyLeo",
     repo="https://github.com/BatyLeo/StochasticTailAssignment.jl/blob/{commit}{path}#{line}",

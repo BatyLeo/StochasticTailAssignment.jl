@@ -103,6 +103,16 @@ function find_best_non_taboo_column(columns, dual_values, taboo_list)
     return nothing
 end
 
+"""
+$TYPEDSIGNATURES
+
+Diving heuristic with backtracking, maintaining a `taboo_list` of columns excluded from
+selection, and backtracking up to `max_discrepancy` times when column generation becomes
+infeasible after fixing a column into `partial_solution`.
+
+Returns `(solution, feasible)`, where `feasible` indicates whether a feasible integer
+solution was found.
+"""
 function diving_heuristic_with_backtracking!(
     instance::AbstractSchedule,
     columns,

@@ -33,12 +33,22 @@ include("column_generation/backward_shortest_path.jl")
 include("column_generation/column_generation.jl")
 include("column_generation/diving_heuristic.jl")
 
+include("Learning/Learning.jl")
+
+using .Learning
+
 export solve_stochastic_aircraft_routing_mip
 
 export forward_tail_shortest_path
 export backward_tail_shortest_path
 export stochastic_column_generation, stochastic_column_heuristic
 export pure_diving_heuristic, diving_heuristic_with_backtracking!
+
+export compute_features
+export generate_dataset, compute_normalization, normalize_data
+export build_maximizer, build_loss
+export default_model, train_model!
+export evaluate_metrics
 
 function plot_gantt end
 export plot_gantt

@@ -30,6 +30,7 @@ function build_model(
     silent=false,
     feasibility_only=false,
     relaxation=false,
+    time_limit::Union{Nothing,Real}=nothing,
 )
     graph = instance.graph
     immat_graphs = instance.immat_graphs
@@ -40,6 +41,7 @@ function build_model(
 
     model = model_builder()
     silent && set_silent(model)
+    isnothing(time_limit) || set_time_limit_sec(model, time_limit)
 
     if relaxation
         model[:y] = @variable(
@@ -144,16 +146,31 @@ end
 $TYPEDSIGNATURES
 
 Solve the aircraft routing problem using a MIP solver.
-Returns the optimal routes and objective value.
+Returns the routes and objective value of the best solution found.
+
+If a time limit is hit before a feasible incumbent is found
+(`primal_status(model) != MOI.FEASIBLE_POINT`), warns and returns the sentinel
+`(Vector{Int}[], -1, nothing)`. If a feasible incumbent exists but the solver
+did not prove optimality, warns and still decodes and returns that (possibly
+suboptimal) incumbent.
 """
 function solve_aircraft_routing(
-    instance::AbstractSchedule; relaxation=false, silent=true, kwargs...
+    instance::AbstractSchedule;
+    relaxation=false,
+    silent=true,
+    time_limit::Union{Nothing,Real}=nothing,
+    kwargs...,
 )
-    model = build_model(instance; silent, relaxation, kwargs...)
+    model = build_model(instance; silent, relaxation, time_limit, kwargs...)
     optimize!(model)
-    silent || @info termination_status(model)
-    if termination_status(model) != MOI.OPTIMAL
+    status = termination_status(model)
+    silent || @info status
+    if primal_status(model) != MOI.FEASIBLE_POINT
+        silent || @warn "Deterministic MIP did not find a feasible solution" status
         return Vector{Int}[], -1, nothing
+    end
+    if status != MOI.OPTIMAL
+        silent || @warn "Deterministic MIP stopped before proving optimality" status
     end
     y_val = value.(model[:y])
     if relaxation
