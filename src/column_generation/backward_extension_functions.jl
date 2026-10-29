@@ -16,11 +16,13 @@ struct TailBackwardExtensionFunction
     operational_cost::Float64
     "dual variable λ of the arc tail"
     λ::Float64
+    "true if tail of arc is a maintenance activity (or dummy), used for knowing when not to compute delay costs"
+    is_tail_maintenance::Bool
 end
 
 function change_lambda(f::TailBackwardExtensionFunction, λ::Float64)
     return TailBackwardExtensionFunction(
-        f.root_delays, f.slack_with_turn_time, f.operational_cost, λ
+        f.root_delays, f.slack_with_turn_time, f.operational_cost, λ, f.is_tail_maintenance
     )
 end
 
@@ -39,9 +41,14 @@ function (f::TailBackwardExtensionFunction)(
             PiecewiseLinearFunction([0.0], [εⱼ - f.slack_with_turn_time], 0.0, 1.0)
         end
         arrival_delay_function = PiecewiseLinearFunction([0.0], [εⱼ], 1.0, 1.0)
+        # no delay cost on maintenance activities, only propagation
+        delay_cost = if f.is_tail_maintenance
+            PiecewiseLinearFunction([0.0], [0.0], 0.0, 0.0)
+        else
+            delay_cost_function ∘ arrival_delay_function
+        end
         return remove_redundant_breakpoints(
-            delay_cost_function ∘ arrival_delay_function + gⱼ ∘ delay_propagation_function;
-            atol=1e-8,
+            delay_cost + gⱼ ∘ delay_propagation_function; atol=1e-8
         )
     end
     new_λ = r.λ_sum .+ f.λ

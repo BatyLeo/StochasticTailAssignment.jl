@@ -135,7 +135,8 @@ function _precompute_extension_functions(instance, immat_index, root_delays)
         u, v = src(e), dst(e)
         λ = 0.0  # placeholder
 
-        ε = if is_s(instance, u) || is_maintenance(instance, u)
+        is_tail_maintenance = is_s(instance, u) || is_maintenance(instance, u)
+        ε = if is_tail_maintenance
             zeros(S)
         else
             root_delays[:, u]
@@ -150,7 +151,7 @@ function _precompute_extension_functions(instance, immat_index, root_delays)
 
         cost = edge_cost_origin(instance, u, v, immat_index)
 
-        return TailBackwardExtensionFunction(ε, ω, cost, λ)
+        return TailBackwardExtensionFunction(ε, ω, cost, λ, is_tail_maintenance)
     end
 
     return (; FF, BF)
