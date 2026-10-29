@@ -30,7 +30,8 @@ function compute_partial_bounds(
         u, v = src(e), dst(e)
         λ = 0.0
 
-        ε = if is_s(instance, u) || is_maintenance(instance, u)
+        is_tail_maintenance = is_s(instance, u) || is_maintenance(instance, u)
+        ε = if is_tail_maintenance
             zeros(S)
         else
             root_delays[:, u]
@@ -45,7 +46,7 @@ function compute_partial_bounds(
 
         cost = edge_cost_origin(instance, u, v, immat_index)
 
-        return TailBackwardExtensionFunction(ε, ω, cost, λ)
+        return TailBackwardExtensionFunction(ε, ω, cost, λ, is_tail_maintenance)
     end
     backward_functions = sparse(II, JJ, BF, V, V)
 
