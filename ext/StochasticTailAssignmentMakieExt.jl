@@ -204,8 +204,13 @@ colored by departure and arrival airport (left and right half of the bar respect
 - `delay_cost_function`: cost function associated with `root_delays`.
 - `comparison_routes`: optional second set of routes (e.g. a deterministic solution),
   displayed in a second section below the primary one for visual comparison.
+- `primary_label`: title used for the primary section (the `routes` argument).
 - `comparison_label`: title used for the comparison section.
 - `title`: figure title, currently unused but kept for API symmetry.
+- `show_delays`: initial state of the "Show delays" toggle when `root_delays` and
+  `delay_cost_function` are both provided. The toggle itself is only interactive on
+  GLMakie and WGLMakie, so set this to `true` to render the delay coloring on static
+  backends such as CairoMakie.
 """
 function StochasticTailAssignment.plot_gantt(
     instance::ActivitySchedule,
@@ -213,8 +218,10 @@ function StochasticTailAssignment.plot_gantt(
     root_delays::Union{Nothing,AbstractMatrix}=nothing,
     delay_cost_function=nothing,
     comparison_routes::Union{Nothing,Vector{Route}}=nothing,
+    primary_label::String="Deterministic",
     comparison_label::String="Stochastic",
     title::String="Aircraft Routing Solution",
+    show_delays::Bool=false,
     figure_kwargs...,
 )
     legs = instance.legs
@@ -262,7 +269,7 @@ function StochasticTailAssignment.plot_gantt(
 
     if has_delays
         tg = fig[1, 1] = GridLayout(; tellwidth=false)
-        toggle = Toggle(tg[1, 1]; active=false)
+        toggle = Toggle(tg[1, 1]; active=show_delays)
         Label(tg[1, 2], "Show delays")
         show_delays = toggle.active
     else
@@ -277,7 +284,7 @@ function StochasticTailAssignment.plot_gantt(
             t_start,
             total_hours,
             asgn,
-            "Deterministic",
+            primary_label,
             avg_delay,
             comp_asgn,
             airport_colors,
